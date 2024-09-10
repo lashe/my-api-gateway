@@ -1,5 +1,5 @@
 http:
-  port: 8080
+  port: 8081
 admin:
   port: 9876
   host: localhost
@@ -9,12 +9,25 @@ apiEndpoints:
   #   paths: '/ip'
   ZeroTrustDemoApp:
     host: localhost
-    paths: /api/v1/*
+    paths: /api/v1/auth/*
+
+  ZeroTrustDemoApp2:
+    host: localhost
+    paths: /api/v1/user/*
+
+  ZeroTrustAdmin:
+    host: localhost
+    paths: /api/v1/admin/*
 serviceEndpoints:
-  # httpbin:
-  #   url: 'https://httpbin.org'
   ZeroTrustDemoAppService:
     url: 'http://localhost:3000'
+
+  ZeroTrustDemoAppService2:
+    url: 'http://localhost:3001'
+
+  ZeroTrustAdminService:
+    url: 'http://localhost:4000'
+
 policies:
   - basic-auth
   - cors
@@ -24,9 +37,9 @@ policies:
   - oauth2
   - proxy
   - rate-limit
+
 pipelines:
-  - name: getting-started
-  # default:
+  - name: Auth-API
     apiEndpoints:
       # - api
       ZeroTrustDemoApp
@@ -43,10 +56,54 @@ pipelines:
             windowMs: 1000
     - log:
           - action:
-              message: 'Request received'
+              message: Auth Request received ${req.method} ${req.originalUrl}
     - proxy:
           - action:
-              # serviceEndpoint: httpbin 
-              # changeOrigin: true
               serviceEndpoint: ZeroTrustDemoAppService
+              changeOrigin: true
+
+  - name: User-API
+  # default:
+    apiEndpoints:
+      # - api
+      ZeroTrustDemoApp2
+    policies:
+    - cors:
+          - action:
+              origin: '*'
+              methods: 'GET,POST,PUT,DELETE'
+    - key-auth:
+    - rate-limit:
+        - action:
+            max: 1
+            windowMs: 1000
+    - log:
+          - action:
+              message: User Request received ${req.method} ${req.originalUrl}
+    - proxy:
+          - action:
+              serviceEndpoint: ZeroTrustDemoAppService2
+              changeOrigin: true
+
+  - name: Admin-API
+  # default:
+    apiEndpoints:
+      # - api
+      ZeroTrustAdmin
+    policies:
+    - cors:
+          - action:
+              origin: '*'
+              methods: 'GET,POST,PUT,DELETE'
+    - key-auth:
+    - rate-limit:
+        - action:
+            max: 1
+            windowMs: 1000
+    - log:
+          - action:
+              message: Admin Request received ${req.method} ${req.originalUrl}
+    - proxy:
+          - action:
+              serviceEndpoint: ZeroTrustAdminService
               changeOrigin: true
